@@ -1,3 +1,4 @@
+import e from "express";
 import CourseSchema from "../models/CoursesSchema.js";
 import InstituteSchema from "../models/InstituteSchema.js";
 import InstructorSchema from "../models/Instructor.js";
@@ -18,6 +19,8 @@ export const createInstitute = async (req, res) => {
       BannerImage,
       Bio,
     } = req.body;
+
+    //Debugginng.
     console.log(
       name,
       email,
@@ -334,9 +337,17 @@ export const addQuestion = async (req, res) => {
 
 export const addQuiz = async (req, res) => {
   try {
-    const { Title, Description,Duration,Lecture } = req.body;
+    const { Title, Questions,totalQuestions,Marks, Description,Duration,Lecture, Type } = req.body;
     console.log(Title, Description,  Duration, Lecture);
-    if (!Title || !Description || !Duration || !Lecture) {
+   if (
+      !Title?.trim() ||
+      !Description?.trim() ||
+      !Array.isArray(Questions) || Questions.length === 0 ||
+      !totalQuestions ||
+      !Marks ||
+      !Duration?.trim() ||
+      !Type?.trim()
+    ) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -443,3 +454,116 @@ export const addExam = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+
+export const Instructors = async (req, res) => {
+  try {
+    const InstituteId = req.user.id; // Get the Institute ID from the authenticated user
+
+    const instructors = await InstructorSchema.find({ Institute: InstituteId });
+    if (!instructors) {
+      return res.status(404).json({ message: "Instructors not found" });
+    }
+
+    res.status(200).json({
+      message: "Instructors fetched successfully",
+      instructors,
+    });
+  } catch (error) {
+    console.error("Error fetching instructors:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+export const courses = async (req, res) => {
+  try {
+    const InstituteId = req.user.id; // Get the Institute ID from the authenticated user
+
+    const courses = await CourseSchema.find({ Institute: InstituteId });
+    if (!courses) {
+      return res.status(404).json({ message: "Courses not found" });
+    }
+
+    res.status(200).json({
+      message: "Courses fetched successfully",
+      courses,
+    });
+  } catch (error) {
+    console.error("Error fetching courses:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+
+export const modules = async (req, res) => {
+  try {
+    const InstituteId = req.user.id;
+
+    // Step 1: Find courses for the given Institute
+    const courses = await CourseSchema.find({ Institute: InstituteId });
+    const courseIds = courses.map((course) => course._id);
+
+    // Step 2: Find modules for these courses
+    const modules = await ModuleSchema.find({ Course: { $in: courseIds } });
+
+    res.status(200).json({
+      message: "Modules fetched successfully",  
+      modules,
+    });
+  } catch (error) {
+    console.error("Error fetching modules:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+
+export const  Quizzes = async (req, res) => {
+  try {
+    const InstituteId = req.user.id; // Get the Institute ID from the authenticated user
+
+    // Step 1: Find courses for the given Institute
+    const courses = await CourseSchema.find({ Institute: InstituteId });
+    const courseIds = courses.map((course) => course._id);
+
+    // Step 2: Find modules for these courses
+    const modules = await ModuleSchema.find({ Course: { $in: courseIds } });
+    const moduleIds = modules.map((module) => module._id);
+
+    // Step 3: Find quizzes for these modules
+    const quizzes = await QuizSchema.find({ Module: { $in: moduleIds } });
+
+    res.status(200).json({
+      message: "Quizzes fetched successfully",
+      quizzes,
+    });
+  } catch (error) {
+    console.error("Error fetching quizzes:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
+
+
+export const Lectures = async (req, res) => {
+  try {
+    const InstituteId = req.user.id; // Get the Institute ID from the authenticated user
+
+    // Step 1: Find courses for the given Institute
+    const courses = await CourseSchema.find({ Institute: InstituteId });
+    const courseIds = courses.map((course) => course._id);
+
+    // Step 2: Find modules for these courses
+    const modules = await ModuleSchema.find({ Course: { $in: courseIds } });
+    const moduleIds = modules.map((module) => module._id);
+
+    // Step 3: Find lectures for these modules
+    const lectures = await LectureSchema.find({ Module: { $in: moduleIds } });
+
+    res.status(200).json({
+      message: "Lectures fetched successfully",
+      lectures,
+    });
+  } catch (error) {
+    console.error("Error fetching lectures:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+}
